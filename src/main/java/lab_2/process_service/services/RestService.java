@@ -4,8 +4,11 @@ import com.google.gson.Gson;
 
 import lab_2.process_service.components.RestTemplateResponseErrorHandler;
 import lab_2.process_service.entities.*;
+import lab_2.process_service.jms.Receiver;
 import lab_2.process_service.jms.Sender;
 import lab_2.process_service.repositories.TransactionRepository;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -28,6 +31,7 @@ public class RestService {
 
     @Autowired
     TransactionRepository transactionRepository;
+    private static final Logger logger = LogManager.getLogger(RestService.class);
 
 
     @Autowired
@@ -57,6 +61,7 @@ public class RestService {
         HttpHeaders headers = new HttpHeaders();
         headers.add("transactionId", transactionId);
         HttpEntity<Object> entity = new HttpEntity<>(user, headers);
+        logger.info("Process receive " + transactionId);
         ResponseEntity<User> updatedUser = this.restTemplate.exchange(url, HttpMethod.PUT, entity, User.class);
         if (updatedUser.getStatusCode().is2xxSuccessful()) {
             this.transactionRepository.save(new Transaction(transactionId, "processing", userId));
