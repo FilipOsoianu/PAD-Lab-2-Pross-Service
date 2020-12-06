@@ -1,0 +1,121 @@
+version: '3.1'
+services:
+  db:
+    image: mysql
+    cap_add:
+      - SYS_NICE  # CAP_SYS_NICE
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: lab_1
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./mysql_users:/docker-entrypoint-initdb.d
+
+  db_insurances:
+    image: mysql
+    cap_add:
+      - SYS_NICE  # CAP_SYS_NICE
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: lab_2
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+    ports:
+      - "3309:3306"
+    volumes:
+      - ./mysql_insurances:/docker-entrypoint-initdb.d
+
+  user_service:
+    depends_on:
+      - db
+      - logstash
+    image: lab_2_user:latest
+    ports:
+      - "8082:8082"
+    restart: always
+    environment:
+      spring.datasource.url: jdbc:mysql://db:3306/lab_1
+      logging.conf.host: logstash
+      logging.conf.port: 5400
+
+  insurances_service:
+    depends_on:
+      - db_insurances
+      - logstash
+    image: lab_2_insurances:latest
+    ports:
+      - "8081:8081"
+    restart: always
+    environment:
+      spring.datasource.url: jdbc:mysql://db_insurances:3306/lab_2
+      logging.conf.host: logstash
+      logging.conf.port: 5400
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:6.6.0
+    ports:
+      - "9201:5400"
+    command: logstash -f /etc/logstash/conf.d/logstash.conf
+    volumes:
+      - ./logstash/logstash.conf:/etc/logstash/conf.d/logstash.conf
+      - ./logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ELASTIC_HOST: host.docker.internal:9200
+    depends_on:
+      - elastic
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.6.0
+    ports:
+      - "5601:5601"
+    environment:
+      SERVER_NAME: kibana
+      SERVER_HOST: kibana
+      ELASTICSEARCH_HOSTS: http://host.docker.internal:9200/
+    depends_on:
+      - elastic
+
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.6.0
+    environment:
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - discovery.type=single-node
+    volumes:
+      - ./data01:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+
+  activemq:
+    image: webcenter/activemq:5.14.3
+    ports:
+      # mqtt
+      - "1883:1883"
+      # amqp
+      - "5672:5672"
+      # ui
+      - "8161:8161"
+      # stomp
+      - "61613:61613"
+      # ws
+      - "61614:61614"
+      # lab_2.process_service.jms
+      - "61616:61616"
+    environment:
+      ACTIVEMQ_REMOVE_DEFAULT_ACCOUNT: "true"
+      ACTIVEMQ_ADMIN_LOGIN: admin
+      ACTIVEMQ_ADMIN_PASSWORD: admin
+      ACTIVEMQ_WRITE_LOGIN: admin
+      ACTIVEMQ_WRITE_PASSWORD: admin
+      ACTIVEMQ_READ_LOGIN: admin
+      ACTIVEMQ_READ_PASSWORD: admin
+      ACTIVEMQ_JMX_LOGIN: admin
+      ACTIVEMQ_JMX_PASSWORD: admin
+      ACTIVEMQ_ENABLED_SCHEDULER: "true"
+      ACTIVEMQ_MIN_MEMORY: 512
+      ACTIVEMQ_MAX_MEMORY: 2048
