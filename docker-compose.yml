@@ -30,6 +30,21 @@ services:
     volumes:
       - ./mysql_insurances:/docker-entrypoint-initdb.d
 
+  db_transactions:
+    image: mysql
+    cap_add:
+      - SYS_NICE  # CAP_SYS_NICE
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: transactions
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+    ports:
+      - "3311:3306"
+    volumes:
+      - ./mysql_transactions:/docker-entrypoint-initdb.d
+
   user_service:
     depends_on:
       - db
@@ -55,6 +70,29 @@ services:
       spring.datasource.url: jdbc:mysql://db_insurances:3306/lab_2
       logging.conf.host: logstash
       logging.conf.port: 5400
+
+#  pross_service:
+#    depends_on:
+#      - db_transactions
+#      - logstash
+#      - activemq
+#      - user_service
+#      - insurances_service
+#    image: lab_2_pross:latest
+#    ports:
+#      - "8085:8085"
+#    restart: always
+#    environment:
+#      spring.datasource.url: jdbc:mysql://db_transactions:3306/transactions
+#      logging.conf.host: logstash
+#      logging.conf.port: 5400
+#      activemq.broker-url: tcp://activemq:61616
+#      spring.active-mq.user: admin
+#      spring.active-mq.password: admin
+#      spring.active-mq.queue: users
+#      user-service-url: http://user_service:8082
+#      insurance-service-url: http://insurance_service:8081
+#      service-port: 8085
 
   logstash:
     image: docker.elastic.co/logstash/logstash:6.6.0

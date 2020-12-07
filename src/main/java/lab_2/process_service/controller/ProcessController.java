@@ -78,19 +78,19 @@ public class ProcessController {
     }
 
     @GetMapping("/users/{userId}")
-    ResponseEntity<User> getUserById(@RequestHeader() String transactionId, @PathVariable Integer userId) {
-        return restService.getUserById(transactionId, userId);
+    ResponseEntity<User> getUserById(@PathVariable Integer userId) {
+        return restService.getUserById(userId);
     }
 
     @GetMapping("/insurances")
-    ResponseEntity<List<Insurance>> getInsurancesByUsersId(@RequestHeader() String transactionId, @RequestParam(required = false) Integer userId) {
-        return restService.getInsurancesByUserId(transactionId, userId);
+    ResponseEntity<List<Insurance>> getInsurancesByUsersId(@RequestParam(required = false) Integer userId) {
+        return restService.getInsurancesByUserId(userId);
     }
 
 
     @GetMapping("/insurances/{insuranceId}")
-    ResponseEntity<Insurance> getInsuranceById(@RequestHeader() String transactionId, @PathVariable Integer insuranceId) {
-        return restService.getInsuranceById(transactionId, insuranceId);
+    ResponseEntity<Insurance> getInsuranceById(@PathVariable Integer insuranceId) {
+        return restService.getInsuranceById(insuranceId);
     }
 
 

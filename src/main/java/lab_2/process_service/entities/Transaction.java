@@ -1,13 +1,13 @@
 package lab_2.process_service.entities;
 
+import org.hibernate.annotations.NaturalId;
+
 import javax.persistence.*;
 
 @Entity
 @Table(name = "transactions")
 public class Transaction {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
     private String transactionId;
     private String status;
     private int userId;
@@ -22,13 +22,6 @@ public class Transaction {
 
     }
 
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
 
     public String getTransactionId() {
         return transactionId;

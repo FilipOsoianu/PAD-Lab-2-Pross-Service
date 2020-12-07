@@ -44,10 +44,15 @@ public class RestService {
     }
 
 
-    public ResponseEntity<Insurance> createInsurance(Insurance object) {
+    public ResponseEntity<Insurance> createInsurance(Insurance insurance) {
         String url = this.insuranceServiceUrl + "/insurances";
-        HttpEntity<Object> entity = new HttpEntity<>(object);
-        return this.restTemplate.exchange(url, HttpMethod.POST, entity, Insurance.class);
+        ResponseEntity<User> user = getUserById(insurance.getUserId());
+        if (user.getStatusCode().is2xxSuccessful()) {
+            insurance.setCost(user.getBody().getBirthDate().toEpochDay());
+            HttpEntity<Object> entity = new HttpEntity<>(insurance);
+            return this.restTemplate.exchange(url, HttpMethod.POST, entity, Insurance.class);
+        } else
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 
     public ResponseEntity<User> createUser(User object) {
@@ -66,12 +71,13 @@ public class RestService {
         if (updatedUser.getStatusCode().is2xxSuccessful()) {
             this.transactionRepository.save(new Transaction(transactionId, "processing", userId));
             transaction(transactionId, user, updatedUser.getBody(), userId);
+            logger.info("Transaction ended successfully transactionId = " + transactionId);
         }
         return updatedUser;
     }
 
     public void transaction(String transactionId, User originalUser, User updatedUser, Integer userId) {
-        ResponseEntity<List<Insurance>> insurancesResponse = getInsurancesByUserId(transactionId, userId);
+        ResponseEntity<List<Insurance>> insurancesResponse = getInsurancesByUserId(userId);
         if (insurancesResponse.getStatusCode().is2xxSuccessful()) {
             List<Insurance> insurances = insurancesResponse.getBody();
             if (updateAllInsurances(insurances, transactionId, updatedUser)) {
@@ -82,6 +88,7 @@ public class RestService {
                 RollBackInsurance rollBackInsurance = new RollBackInsurance(insurances, transactionId);
                 sender.sendInsurances(gson.toJson(rollBackInsurance));
                 sender.sendUser(gson.toJson(rollBackUser));
+                logger.info("Start RollBack transactionId = " + transactionId);
             }
         }
     }
@@ -169,23 +176,20 @@ public class RestService {
     }
 
 
-    public ResponseEntity<User> getUserById(String transactionId, Integer userId) {
+    public ResponseEntity<User> getUserById(Integer userId) {
         String url = this.userServiceUrl + "/users/" + userId;
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("transactionId", transactionId);
-        HttpEntity<Object> entity = new HttpEntity<Object>("", headers);
+        HttpEntity<Object> entity = new HttpEntity<Object>("");
         return this.restTemplate.exchange(url, HttpMethod.GET, entity, User.class);
     }
 
-    public ResponseEntity<Insurance> getInsuranceById(String transactionId, Integer insuranceId) {
+    public ResponseEntity<Insurance> getInsuranceById(Integer insuranceId) {
         String url = this.insuranceServiceUrl + "/insurances/" + insuranceId;
         HttpHeaders headers = new HttpHeaders();
-        headers.add("transactionId", transactionId);
-        HttpEntity<Object> entity = new HttpEntity<Object>("", headers);
+        HttpEntity<Object> entity = new HttpEntity<Object>("");
         return this.restTemplate.exchange(url, HttpMethod.GET, entity, Insurance.class);
     }
 
-    public ResponseEntity<List<Insurance>> getInsurancesByUserId(String transactionId, Integer userId) {
+    public ResponseEntity<List<Insurance>> getInsurancesByUserId(Integer userId) {
         String url = "";
         if (userId != null) {
             url = this.insuranceServiceUrl + "/insurances/?userId=" + userId;
@@ -193,8 +197,7 @@ public class RestService {
             url = this.insuranceServiceUrl + "/insurances";
         }
         HttpHeaders headers = new HttpHeaders();
-        headers.add("transactionId", transactionId);
-        HttpEntity<Object> entity = new HttpEntity<Object>("", headers);
+        HttpEntity<Object> entity = new HttpEntity<Object>("");
         return this.restTemplate.exchange(url, HttpMethod.GET, entity, new ParameterizedTypeReference<List<Insurance>>() {
         });
     }

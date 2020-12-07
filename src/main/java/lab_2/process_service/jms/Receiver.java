@@ -48,6 +48,7 @@ public class Receiver {
         boolean rollBackSuccessful = restService.rollBackUser(rollBackUser);
 
         if (!rollBackSuccessful) {
+            logger.info("RollBackUserFails transactionId = " + rollBackUser.getTransactionId());
             if (rollBackUser.getNumberOfRollbacks() < 5) {
                 rollBackUser.setNumberOfRollbacks(rollBackUser.getNumberOfRollbacks() + 1);
                 sender.sendUser(gson.toJson(rollBackUser));
@@ -55,8 +56,9 @@ public class Receiver {
                 restService.changeTransactionStatus(rollBackUser.getTransactionId(), "fail");
                 sender.sendToDLQ(gson.toJson(rollBackUser));
             }
+        } else {
+            logger.info("RollBackUserSuccess transactionId = " + rollBackUser.getTransactionId());
         }
-        System.out.println("rollBackUser" + rollBackUser.getTransactionId());
     }
 
     @JmsListener(destination = INSURANCES_ROLLBACK_QUEUE)
@@ -67,6 +69,7 @@ public class Receiver {
 
         boolean rollBackSuccessful = restService.rollBackInsurances(rollBackInsurance);
         if (!rollBackSuccessful) {
+            logger.info("RollBackInsurancesFails transactionId = " + rollBackInsurance.getTransactionId());
             if (rollBackInsurance.getNumberOfRollbacks() < 5) {
                 rollBackInsurance.setNumberOfRollbacks(rollBackInsurance.getNumberOfRollbacks() + 1);
                 sender.sendInsurances(gson.toJson(rollBackInsurance));
@@ -74,7 +77,8 @@ public class Receiver {
                 restService.changeTransactionStatus(rollBackInsurance.getTransactionId(), "fail");
                 sender.sendToDLQ(gson.toJson(rollBackInsurance));
             }
+        } else {
+            logger.info("RollBackInsurancesSuccess transactionId = " + rollBackInsurance.getTransactionId());
         }
-        System.out.println("rollBackInsurances" + rollBackInsurance.getTransactionId());
     }
 }
